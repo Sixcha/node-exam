@@ -2,6 +2,8 @@ import 'dotenv/config'
 import http from 'node:http'
 import path from 'node:path'
 import fs from "node:fs";
+import querystring from "querystring";
+import {join} from 'node:path'
 
 const{APP_PORT, APP_HOST} = process.env
 
@@ -10,13 +12,6 @@ const viewPath = path.join(import.meta.dirname, 'view')
 const dataPath = path.join(import.meta.dirname, 'Data') 
 const assetsPath = path.join(import.meta.dirname, "assets", 'css')
 
-const students = [
-    { name : "Sonia", birth : "2019-14-05"},
-    { name : "Antoine", birth : "2000-12-05"},
-    { name : "Alice", birth : "1990-14-09"},
-    { name : "Sophie", birth : "2001-10-02"},
-    { name : "Bernard", birth : "1980-21-08"}
-]; 
 
 const server = http.createServer((req, res) => {
 
@@ -31,10 +26,22 @@ const server = http.createServer((req, res) => {
 
     if (req.url === "/users") {
         const usersPage = fs.readFileSync(path.join(viewPath, "users.html"), {encoding: "utf8"})
+        const data = fs.readFileSync(path.join(dataPath, "data.json"), {encoding: "utf8"})
+        const {students} = JSON.parse(data)
+        console.log(students)
+        let html = usersPage;
+        for (let i = 0; i < students.length; i++) {
+          console.log(Object.entries(students))
+          html += "<li>" + students[i].name + " , " + students[i].birth  + "</li>"
+          
+        }
+
+        html += "</ul> </body></html>";
+
         res.writeHead(200, {
             "Content-Type": "text/html"
           })
-          res.end(usersPage)
+          res.end(html)
       }
     
     if(req.url === '/') {
@@ -55,68 +62,31 @@ const server = http.createServer((req, res) => {
         })
         req.on("end", () => {
           const newStudent = querystring.parse(body)
-          const notesArray = newStudent.notes.split(',')
-          const notes = notesArray.map(note => parseInt(note.replace(" ", "")))
-          if (notes.includes(NaN)) {
-            res.writeHead(500, {
-              "Content-Type": "text/plain"
-            })
-            return res.end("Merci de ne saisir que des valeurs numérique pour les notes, séparée d'une virgule")
-          }
-          newStudent.name = newStudent.name.replace(" ", "")
-          newStudent.notes = notes;
-          const fileName = `${newStudent.name.toLowerCase()}.json`;
-          //Creation du fichier json pour newStudent
-          fs.writeFile(path.join(dataPath, fileName), JSON.stringify(newStudent, null, 2), (err) => {
-            if (err) {
-              res.writeHead(500, {
-                "Content-Type": "text/plain"
-              })
-              res.end(err.message)
-              return
-            }
+
             
-            const all = JSON.parse(fs.readFileSync(path.join(dataPath, "all.json"), {encoding: 'utf8'}))
-            all.student.push(newStudent)
-            fs.writeFileSync(path.join(dataPath, "all.json"), JSON.stringify(all, null, 2))
+          if (newStudent.name && newStudent.birthday) {
+            const students = JSON.parse(fs.readFileSync(join(dataPath, "data.json"), {encoding: 'UTF-8'}))
+            const name = newStudent.name.trim()
+            const birth = newStudent.birthday
+
+            students.students.push({name,birth})
+            console.log(students)
+            fs.writeFileSync(join(dataPath, "data.json"), JSON.stringify(students, null, 2))
             
             res.writeHead(301, {
               "Location": "/"
             })
             res.end()
-          })
+          }
+
+          
         })
       }
       
       return
     }
     
-    // if (req.url === '/users') {
-    //   let html;
-    //   const all = fs.readFileSync(path.join(dataPath, "all.json"), {encoding: "utf8"})
-    //   const {student} = JSON.parse(all)
-      
-    //   pug.renderFile(path.join(viewPath, 'users.pug'), {students: student}, (err, data) => {
-    //     if (err) {
-    //       res.writeHead(500, {
-    //         "Content-Type": "text/plain"
-    //       })
-    //       return res.end(err.message)
-    //     }
-        
-    //     res.writeHead(200, {
-    //       "Content-Type": "text/html"
-    //     })
-    //     return res.end(data)
-    //   })
-    //   return
-    // }
-    
-    // res.writeHead(404, {
-    //   "Content-Type" : "text/html"
-    // })
-    // const page404 = fs.readFileSync(path.join(viewPath, "404.html"), {encoding: "utf8"})
-    // res.end(page404)
+
   })
   
   server.listen(APP_PORT, APP_HOST, () => {

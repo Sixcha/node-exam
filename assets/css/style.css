@@ -1,0 +1,19 @@
+html{
+    background-color: #36393e;
+}
+
+p, label, h1, li {
+    color: white;
+}
+
+a {
+    color: #7289da;
+    text-decoration: none;
+}
+
+.btn{
+    color: white;
+    background-color: #1e2124;
+    border-radius: 3px;
+    border: 2px solid	#282b30;
+}
